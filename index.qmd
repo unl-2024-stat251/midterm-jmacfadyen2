@@ -64,7 +64,7 @@ The data will have 15 columns when it is read in, as that is the number of heade
 4.  How is the data stored differently in the address field compared to the name field (1 pt), and why is this different handling necessary (1 pt)?
 
 The data stored in the address field is more specific than the name field, as it includes things such as the street name/number, zip code, city, and state, whereas the name field only includes the name of the establishment.
-This different handling is necessary because it's important to be able to find the exact location for reasons such as contacting the establishment or plotting a map of the data.
+This different handling is necessary because it's important to be able to find the exact location for various reasons, such as contacting the establishment or plotting a map of the data.
 
 ## Reading the Data
 
@@ -98,7 +98,7 @@ data_unique_values_no_missing_count <- sapply(data, function(x) length(unique(x[
 When computing the number of unique values, exclude missing values.
 
 | Column Name       | Data Type (5 pts) | \# missing values (5 pts) | \# unique values (5 pts) |
-|-------------------|-------------------|---------------------------|--------------------------|
+|------------------|------------------|-------------------|------------------|
 | election_date     | Character         | 0                         | 7                        |
 | state             | Character         | 0                         | 39                       |
 | county_name       | Character         | 114568                    | 1880                     |
@@ -145,11 +145,15 @@ Add new rows by moving to a new line, and separate each cell in the table with `
 `|` is on the key above the enter key and shares a key with `\` (backslash).
 You will need to hold shift down.
 
-| Step \# | Verb      | Arguments      | What this does                          |
-|---------|-----------|----------------|-----------------------------------------|
-| 1       | filter    | data = data, state == "MT"| This filters out all states in the polling data not from Montana|
-| 2       | group_by  | data = MT_data, election_date, county_name | This groups together all Montana data with the same county name and election date |
-| 3       | summarize | num_poll_place = n()| This creates a column of the counts of the observations in each group|
+| Step \# | Verb      | Arguments                                  | What this does                                                                    |
+|---------------|---------------|---------------|----------------------------|
+| 1       | filter    | data = data, state == "MT"                 | This filters out all states in the polling data not from Montana                  |
+| 2       | filter    | data = data, address != "MT"               | This filters out rows that only have "MT" in their address line                   |
+| 3       | group_by  | data = MT_data, election_date, county_name | This groups together all Montana data with the same county name and election date |
+| 4       | summarize | num_poll_place = n()                       | This creates a column of the counts of the observations in each group             |
+
+Note: Montana data was manually checked for lines with "DO NOT USE" and there were none.
+If there were, the coding function 'grepl' could be used in conjunction with 'filter' to remove any rows that contained "DO NOT USE"
 
 ## Code
 
@@ -160,12 +164,9 @@ Write code in R or python to execute the steps you outlined above.
 ```{r chart-data}
 MT_data <- filter(data, state == "MT")
 MT_data <- filter(MT_data, address != "MT")
-
-# Montana data was manually checked for polling places that should not be included, such as addresses/names with the string "DO NOT USE". The coding function 'grepl' could be used instead, but manually checking the data was easy enough and could capture other reasons to remove data. No action was needed.
-
 chart_data <- MT_data %>%
   group_by(election_date, county_name) %>%
-  summarize(num_poll_place = n())
+  summarize(num_poll_place = n(), .groups = "drop")
 ```
 
 ## Chart Description
@@ -179,17 +180,17 @@ Use the grammar of graphics to identify the components of the chart here, which 
 
 -   aesthetics: (list at least 3)
 
-    -   x = election date
+    -   x = election date, ticks were labelled differently for simplicity
 
-    -   y = number of polling places
+    -   y = number of polling places, ticks become exponentially greater
 
-    -   group = county name
+    -   group = county name, only differentiated by line and not by color, there is no legend
 
 -   coordinate system: cartesian
 
--   y axis scale:
+-   y axis scale: discrete, only whole numbers ranging from less than 10 to over 300, ticks become exponentially greater
 
--   x axis scale:
+-   x axis scale: discrete, dates ranging from 2012 to 2020, ticks were labelled differently for simplicity
 
 ## Chart
 
@@ -200,23 +201,30 @@ Make sure your axes are labeled (5 pts) and your chart has a title (5 pts).
 Include your plot in this document and make sure you have a figure caption that describes what someone should notice in the chart (5 pts) You may do this either by modifying the chunk options or by using `include=F` and manually including the picture with a caption.
 
 ```{r}
-ggplot(data = chart_data, aes(x = election_date, y = num_poll_place, group = county_name))+
-  geom_line(size = 0.5)+
-  labs(x = "Date", y = "Number of Polling Places per County", title = "Montana Polling Place Changes, 2012-2020")+
+MT_chart <- ggplot(data = chart_data, aes(x = election_date, y = num_poll_place, group = county_name))+
+  geom_line(linewidth = 0.6)+
+  labs(x = "Date", y = "Number of Polling Places per County", title = "Montana Polling Place Changes, 2012-2020", caption = "There is a general downward trend of the amount of polling places in Montana, particularly from the year 2012 to 2014.")+
   scale_x_discrete(labels = c("2012", "2014", "2016", "2018", "2020"))
-
+print(MT_chart)
 ```
 
 ## Modifications
 
 Evaluate the chart you created for comprehensibility and accessibility.
 (1 pt)
-The chart I created is comprehensive and accessible for anyone reading it. The chart is in black and white, meaning that there's no way people can view the graph differently based on color perception. The data points are all aligned on the same ticks of the x-axis, making comparisons between the changes of each county easier to read. The chart title and axes labels give proper context to the data displayed so people are able to appropriately interpret what the data means. There is no "chartjunk" or extravagant design choices that make the graph difficult to read.
+
+The chart I created is comprehensive and accessible for anyone reading it.
+The chart is in black and white, meaning that there's no way people can view the graph differently based on color perception.
+The data points are all aligned on the same ticks of the x-axis, making comparisons between the changes of each county easier to read.
+The chart title and axes labels give proper context to the data displayed so people are able to appropriately interpret what the data means.
+There is no "chartjunk" or extravagant design choices that make the graph difficult to read.
 
 What modifications might you add to this chart to make it clearer and more understandable?
 (2 pts)
-One modification I could add to the chart to become more understandable is adding an "average" or "total" line to serve as a representation of the general trend data, rather than the reader having to absorb all of the information and interpret the general trend themselves. Another modification could be changing line thickness based on how many counties have identical data. This would emphasize how many counties there are that have the same amount of polling places.
 
+One modification I could add to the chart to become more understandable is adding an "average" or "total" line to serve as a representation of the general trend data, rather than the reader having to absorb all of the information and interpret the general trend themselves.
+Another modification could be changing line thickness based on how many counties have identical data.
+This would emphasize how many counties there are that have the same amount of polling places.
 
 # Data Processing
 
@@ -244,10 +252,14 @@ COMMUNITY CENTER, 1168 HWY 84, SILAS, AL 36919
 ```
 
 Write out the steps your function will need to accomplish in plain language.
-Isolate each chunk of the address based on commas.
-The last chunk will usually follow a format of STATE zip_code, so separate that chunk into 2 more chunks.
-Store the last value, the zip code, into zip_code.
-Store the first value, the state, into state.
+
+| Step \# | Verb       | Arguments                                      | What this does                                                                                                                                                                                                        |
+|---------------|---------------|---------------|----------------------------|
+| 1       | data.frame | building_number = NA, street = NA, etc         | This creates a data frame where we can store the valid address pieces.  |
+| 2       | strsplit   | data = address, pattern = ","                  | This breaks apart all of the pieces of the address into chunks. We may have to do this multiple times for some chunks that have separate pieces within them (building number and street address, state and zip code). |
+| 3       | grepl      | data = address, pattern = any numerical values | This looks at chunks and sees if they're only made up of numbers. This will be used for zip codes and building numbers.                                                                                               |
+| 4       | if         | address_chunks = 1, 2, 3, etc                  | This creates conditions for how long the address is. Different lengths of addresses will need different strategies.  |
+| 5       | paste         | address_piece             | This creates conditions for how long the address is. Different lengths of addresses will need different strategies.  |
 
 
 ## Function Code - Single Address
@@ -279,13 +291,14 @@ address_parser <- function(address){
   # DEALING WITH LAST CHUNK - STATE AND ZIP CODE
   last_chunk <- chunks[[1]][length(chunks[[1]])] # This is the last chunk, usually STATE ZIP
   split_last_chunk <- strsplit(last_chunk, " ") # This is the last chunk split into STATE and ZIP
-  df$state <- split_last_chunk[[1]][1] # DON'T TOUCH - Stores the first part of last chunk into state
-  df$zip_code <- split_last_chunk[[1]][2] # DON'T TOUCH- Stores the second part of last chunk into zip_code
+  df$state <- split_last_chunk[[1]][1] # This stores the first part of last chunk into state
+  df$zip_code <- split_last_chunk[[1]][2] # This stores the second part of last chunk into zip_code
 
   # DEALING WTIH SECOND TO LAST CHUNK - CITY
   second_to_last_chunk <- chunks[[1]][length(chunks[[1]])-1] # This is the second to last chunk  
-  df$city <- second_to_last_chunk
+  df$city <- second_to_last_chunk # This stores the second to last chunk in the city
   
+  # DEALING WITH THIRD TO LAST CHUNK
   if (chunks_number == 3){
     third_to_last_chunk <- chunks[[1]][length(chunks[[1]])-2]
     split_third_to_last_chunk <- strsplit(third_to_last_chunk, " ")
@@ -297,6 +310,7 @@ address_parser <- function(address){
     }
   }
   
+  # DEALING WITH FOURTH TO LAST CHUNK
   if (chunks_number == 4){
     third_to_last_chunk <- chunks[[1]][length(chunks[[1]])-2]
     split_third_to_last_chunk <- strsplit(third_to_last_chunk, " ")
@@ -314,43 +328,6 @@ address_parser <- function(address){
 
   return(df)
 }
-  
-#----------------------------
-is.finite(as.numeric("First Street, Cordova, AK 99574"))
-
-#----------------------------
-
-  
-  first_chunk <- chunks[[1]][1]
-  second_chunk <- chunks[[1]][2]
-  third_chunk <- chunks[[1]][3]
-  fourth_chunk <- chunks[[1]][4]
-  
-
-  third_to_last_chunk <- chunks[[1]][length(chunks[[1]])-2] # This is the third to last chunk
-
-  
-  first_chunks <- strsplit(first_chunk, " ")
-  first_chunks_number <- length(first_chunks[[1]])
-    if (chunks_number == 4){
-    third_to_last_chunk <- chunks[[1]][length(chunks[[1]])-2]
-    split_third_to_last_chunk <- strsplit(third_to_last_chunk, " ")
-    
-    fourth_to_last_chunk <- chunks[[1]][length(chunks[[1]])-3]
-    split_fourth_to_last_chunk <- strsplit(fourth_to_last_chunk, " ")
-    
-    if(all(grepl("^\\d+$", split_third_to_last_chunk[[1]][1]))){
-      df$building_number <- split_third_to_last_chunk[[1]][1]
-      df$street <- paste(split_third_to_last_chunk[[1]][-1], collapse = " ")
-    } else{
-      if(all(grepl("^\\d+$", split_fourth_to_last_chunk[[1]][1]))){
-       df$building_number <- split_fourth_to_last_chunk[[1]][1]
-       df$street <- paste(split_fourth_to_last_chunk[[1]][2:length(split_fourth_to_last_chunk)])
-      } else{
-      df$street <- third_to_last_chunk
-    }
-    }
-  }
 ```
 
 This chunk will test your function on the addresses provided as examples.
@@ -377,6 +354,7 @@ Write a function, `address_vec`, which can parse a vector of addresses and retur
 
 ```{r vector-address-parser}
 address_vec <- function(addresses) {
+  dfs <- list()
   for (address in addresses) {
     parsed_address <- address_parser(address)
     df <- data.frame(parsed_address, stringsAsFactors = FALSE)
@@ -395,18 +373,17 @@ test_vec <- c("Tatitlek, AK 99677", "First Street, Cordova, AK 99574", "105 ICE 
 address_vec(test_vec)
 ```
 
-
 ## Function Evaluation
 
 Use your function to parse a vector of the unique polling place addresses in your state, creating a data table of address components for your letters.
 (5 pts)
 
 ```{r r-function-eval}
-address_vec(MT_data$address)
-address_vec(MT_data$address[550:557])
-address_vec(MT_data$address[288])
-MT_data$address[288]
+function_evaluation <- address_vec(MT_data$address)
+print(function_evaluation[1130:1140,])
 ```
 
 Where did your function have issues, if it did?
 (5 pts)
+
+While there were no problems within the Montana data, the function could have issues if the address line is only one piece long (though, is that really even an address?). It also assumes that the very last piece of the address is the state abbreviation and zip-code, and the second to last piece is the city. If there were any discrepancies with these assumptions, then the output would be incorrect.
